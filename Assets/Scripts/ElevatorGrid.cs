@@ -5,11 +5,15 @@ using UnityEngine.UIElements;
 public class ElevatorGrid : MonoBehaviour
 {
     [SerializeField]
+    GameObject PlanePrefab;
+    [SerializeField]
     Transform elevatorObject;
-    public int width = 5;
-    public int height = 5;
-    public float cellSize = 1f;
-    Vector3 planeSize;
+    [SerializeField]
+    public int desiredWidth = 5, desiredHeight = 5;
+     public int width;
+    public int height;
+    public float cellWidth;
+    public float cellHeight;
     public ElevatorCell[,] grid;
     // Start is called before the first frame update
     void Start()
@@ -20,17 +24,18 @@ public class ElevatorGrid : MonoBehaviour
         if (elevatorObject != null)
         {
 
-            width = Mathf.RoundToInt(elevatorObject.transform.localScale.x * 10f);
+            cellWidth = Mathf.RoundToInt(elevatorObject.transform.localScale.x * 10f/desiredWidth);
 
-            height = Mathf.RoundToInt(elevatorObject.transform.localScale.z * 10f);
+            cellHeight = Mathf.RoundToInt(elevatorObject.transform.localScale.z * 10f / desiredHeight);
 
+            
         }
         else
         {
             Debug.Log("No has añadido tu superficie del elevador!");
         }
 
-        Debug.Log(width+"Height :"+height);
+        Debug.Log(cellWidth+"Height :"+cellHeight);
         CreateGrid();
     }
 
@@ -39,13 +44,25 @@ public class ElevatorGrid : MonoBehaviour
     {
     
     grid = new ElevatorCell[width, height];
-
+    float startX = -width / 2 + cellWidth / 2;
+    float startZ = -height / 2 + cellHeight / 2;
         for (int x = 0; x < width; x++)
         {
             for (int y = 0; y < height; y++)
             {
+
+                GameObject childPlane = Instantiate(PlanePrefab, transform);
+                
+                float posX = startX + x * cellWidth;
+                float posZ = startZ + y * cellHeight;
+
                 grid[x, y] = new ElevatorCell();
-                grid[x, y].position = new Vector2(x, y);
+                grid[x, y].matrixPosition = new Vector2(x, y);
+                grid[x, y].inGamePosition = new Vector2(posX, posZ);
+
+                childPlane.transform.localScale = new Vector3(cellWidth / 10f, 1, cellHeight / 10f);
+                childPlane.transform.position = new Vector3(posX, childPlane.transform.position.y+5, posZ);
+
             }
         }
         Debug.Log(grid[1,2]);
@@ -62,9 +79,9 @@ public class ElevatorGrid : MonoBehaviour
     {
         for (int y = 0; y < height; y++)
         {
-                Vector3 cellWorldPos = new Vector3(x * cellSize, 0, y * cellSize);
+                Vector3 cellWorldPos = new Vector3(x * cellWidth, 0, y * cellHeight);
                 Debug.Log(cellWorldPos);
-            Gizmos.DrawWireCube(cellWorldPos + Vector3.one * cellSize / 2f, Vector3.one * cellSize);
+            Gizmos.DrawWireCube(cellWorldPos + Vector3.one * cellWidth / 2f, Vector3.one * cellHeight);
         }
     }
 }
