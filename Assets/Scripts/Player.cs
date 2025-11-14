@@ -1,66 +1,67 @@
 using UnityEngine;
 
-[RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(Rigidbody), typeof(BoxCollider))]
 public class Player : MonoBehaviour
 {
     [Header("Configuración del tanque")]
-    public float motorForce = 1500f;     // Fuerza de avance
-    public float turnTorque = 300f;      // Fuerza de torque para girar
-    public float maxSpeed = 10f;         // Velocidad máxima lineal
-    public float maxAngularVelocity = 1.5f; // Velocidad máxima de rotación (radianes/segundo)
+    public float moveSpeed = 8f;          // Velocidad de avance
+    public float turnSpeed = 60f;         // Velocidad de giro (grados/segundo)
 
     [Header("Ajustes visuales (opcional)")]
     public Transform leftTrack;
     public Transform rightTrack;
 
     private Rigidbody rb;
+
     private float leftInput;
     private float rightInput;
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
-        rb.centerOfMass = Vector3.down * 0.5f;
-        rb.maxAngularVelocity = maxAngularVelocity;
+        rb.constraints = RigidbodyConstraints.FreezeRotationX |
+                         RigidbodyConstraints.FreezeRotationZ; 
+        // Esto evita que el box incline el tanque
     }
 
     void Update()
     {
-        // Reset inputs
         leftInput = 0f;
         rightInput = 0f;
 
-        // Controles orugas
         if (Input.GetKey(KeyCode.W)) leftInput = 1f;
         else if (Input.GetKey(KeyCode.S)) leftInput = -1f;
 
         if (Input.GetKey(KeyCode.UpArrow)) rightInput = 1f;
         else if (Input.GetKey(KeyCode.DownArrow)) rightInput = -1f;
+
+        AnimateTracks();
     }
 
     void FixedUpdate()
     {
-        // Fuerza de avance promedio
-        float forwardInput = (leftInput + rightInput) * 0.5f;
-        Vector3 forwardForce = transform.forward * forwardInput * motorForce * Time.fixedDeltaTime;
+        // Movimiento (ambas orugas)
+        float forward = (leftInput + rightInput) * 0.5f;
+        Vector3 move = transform.forward * forward * moveSpeed * Time.fixedDeltaTime;
 
-        if (rb.velocity.magnitude < maxSpeed)
-            rb.AddForce(forwardForce, ForceMode.Force);
+        rb.MovePosition(rb.position + move);
 
-        // Torque de giro diferencial (más física)
-        float turnInput = (leftInput - rightInput);
-        Vector3 turnTorqueVector = Vector3.up * turnInput * turnTorque * Time.fixedDeltaTime;
+        // Giro diferencial
+        float turn = (leftInput - rightInput) * turnSpeed * Time.fixedDeltaTime;
 
-        rb.AddTorque(turnTorqueVector, ForceMode.Force);
+        Quaternion rot = Quaternion.Euler(0, turn, 0);
+        rb.MoveRotation(rb.rotation * rot);
 
-        // Animación opcional
-        AnimateTracks();
+        // Mantener el tanque totalmente paralelo al plano
+        Vector3 e = rb.rotation.eulerAngles;
+        rb.MoveRotation(Quaternion.Euler(0, e.y, 0));
     }
 
     void AnimateTracks()
     {
         if (leftTrack)
             leftTrack.localRotation = Quaternion.Euler(leftInput * -30f, 0, 0);
+
         if (rightTrack)
             rightTrack.localRotation = Quaternion.Euler(rightInput * -30f, 0, 0);
     }
